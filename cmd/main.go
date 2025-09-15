@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	cfg := config.LoadConfig()
+	
 
 	r := mux.NewRouter()
 
@@ -17,7 +17,7 @@ func main() {
 		w.Write([]byte("<h1>Chidi Medic Server Up and Running<h1>"))
 	})
 
-	fmt.Printf("Server started on %v", cfg.Port)
+	fmt.Printf("Server started on %v", config.AppConfig.Port)
 
 	http.ListenAndServe(":8080", r)
 
