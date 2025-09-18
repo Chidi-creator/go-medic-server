@@ -3,13 +3,14 @@ package main
 import (
 	"fmt"
 	"github/Chidi-creator/go-medic-server/config"
+	"github/Chidi-creator/go-medic-server/internal/mongo"
 	"net/http"
 
 	"github.com/gorilla/mux"
 )
 
 func main() {
-	
+	mongo.ConnectMongo()
 
 	r := mux.NewRouter()
 

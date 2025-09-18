@@ -12,6 +12,7 @@ type Config struct {
 	Mongo_URI  string
 	JWT_SECRET string
 	JWT_EXPIRE string
+	DB_NAME    string
 }
 
 var AppConfig *Config
@@ -36,6 +37,7 @@ func init() {
 		Mongo_URI:  getEnv("MONGO_URI", ""),
 		JWT_SECRET: getEnv("JWT_SECRET", ""),
 		JWT_EXPIRE: getEnv("JWT_EXPIRE", ""),
+		DB_NAME:    getEnv("DB_NAME", ""),
 	}
 
 	if AppConfig.Mongo_URI == "" {
@@ -46,6 +48,9 @@ func init() {
 	}
 	if AppConfig.JWT_SECRET == "" {
 		log.Fatal("JWT_SECRET is required but not set")
+	}
+	if AppConfig.DB_NAME == "" {
+		log.Fatal("DB_NAME is required but not set")
 	}
 
 }
