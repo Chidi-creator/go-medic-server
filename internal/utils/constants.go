@@ -15,3 +15,11 @@ const (
 	ONGOING Status = "ongoing"
 	DONE    Status = "done"
 )
+
+//structuring the response manager
+type ApiResponse struct {
+	Success bool      `json:"success"`
+	Message string      `json:"message,omitempty"`
+	Data    interface{} `json:"data,omitempty"`
+	Error   string      `json:"error,omitempty"`
+}

@@ -28,7 +28,7 @@ func getEnv(key, fallback string) string {
 func init() {
 	//load env file
 
-	if err := godotenv.Load("../.env"); err != nil {
+	if err := godotenv.Load(".env"); err != nil {
 		log.Fatal("Error loading .env file")
 	}
 
@@ -43,11 +43,11 @@ func init() {
 	if AppConfig.Mongo_URI == "" {
 		log.Fatal("MONGO_URI is required but not set")
 	}
-	if AppConfig.JWT_EXPIRE == "" {
-		log.Fatal("JWT_SECRET is required but not set")
-	}
 	if AppConfig.JWT_SECRET == "" {
 		log.Fatal("JWT_SECRET is required but not set")
+	}
+	if AppConfig.JWT_EXPIRE == "" {
+		log.Fatal("JWT_EXPIRE is required but not set")
 	}
 	if AppConfig.DB_NAME == "" {
 		log.Fatal("DB_NAME is required but not set")

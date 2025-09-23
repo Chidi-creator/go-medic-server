@@ -13,9 +13,9 @@ import (
 
 type UserRepository interface {
 	RegisterUser(ctx context.Context, user *models.User) (*models.User, error)
-	GetUsersByQuery(ctz context.Context, filter bson.M) ([]models.User, error)
+	GetUsersByQuery(ctx context.Context, filter bson.M) ([]models.User, error)
 	GetUserById(ctx context.Context, id string) (*models.User, error)
-	UpdateUserById(ctx context.Context, id string, updateQuery bson.M) (*models.User, error)
+	UpdateUserById(ctx context.Context, id string, updateQuery bson.M) error
 	DeleteUserById(ctx context.Context, id string) (int64, error)
 }
 
@@ -72,14 +72,18 @@ func (u *userRepository) GetUsersByQuery(ctx context.Context, filter bson.M) ([]
 
 func (u *userRepository) GetUserById(ctx context.Context, id string) (*models.User, error) {
 
-	_id, _ := primitive.ObjectIDFromHex(id)
+	_id, err := primitive.ObjectIDFromHex(id)
+
+	if err != nil {
+		return nil, fmt.Errorf("invalid user ID: %w", err)
+	}
 	collection := u.client.Database(u.dbName).Collection(u.collectionName)
 
 	filter := bson.M{"_id": _id}
 
 	var user models.User
 
-	err := collection.FindOne(ctx, filter).Decode(&user)
+	err = collection.FindOne(ctx, filter).Decode(&user)
 
 	if err != nil {
 		return nil, fmt.Errorf("could not find User: %w", err)
@@ -89,28 +93,40 @@ func (u *userRepository) GetUserById(ctx context.Context, id string) (*models.Us
 
 }
 
-func (u *userRepository) UpdateUserById(ctx context.Context, id string, updateQuery bson.M) (*models.User, error) {
+func (u *userRepository) UpdateUserById(ctx context.Context, id string, updateQuery bson.M) error {
 	collection := u.client.Database(u.dbName).Collection(u.collectionName)
 
-	_id, _ := primitive.ObjectIDFromHex(id)
+	_id, err := primitive.ObjectIDFromHex(id)
+
+	if err != nil {
+		return fmt.Errorf("invalid user ID: %w", err)
+	}
+
+	updateQuery["updatedAt"] = time.Now()
 
 	filter := bson.M{"_id": _id}
 	update := bson.M{"$set": updateQuery}
 
-	var updatedUser *models.User
-	err := collection.FindOneAndUpdate(ctx, filter, update).Decode(updatedUser)
-
+	res, err := collection.UpdateOne(ctx, filter, update)
 	if err != nil {
-		return nil, fmt.Errorf("could not update user: %w", err)
+		return fmt.Errorf("could not update user: %w", err)
 	}
-	return updatedUser, nil
+
+	if res.MatchedCount == 0 {
+		return fmt.Errorf("no documents matched: %w", err)
+	}
+
+	return nil
 
 }
 
 func (u *userRepository) DeleteUserById(ctx context.Context, id string) (int64, error) {
 	collection := u.client.Database(u.dbName).Collection(u.collectionName)
 
-	_id, _ := primitive.ObjectIDFromHex(id)
+	_id, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return 0, fmt.Errorf("invalid user ID: %w", err)
+	}
 
 	filter := bson.M{"_id": _id}
 
@@ -121,6 +137,3 @@ func (u *userRepository) DeleteUserById(ctx context.Context, id string) (int64, 
 	}
 	return res.DeletedCount, nil
 }
-
-
-

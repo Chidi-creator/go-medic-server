@@ -3,157 +3,47 @@ package mongo
 import (
 	"context"
 	"fmt"
-	"github/Chidi-creator/go-medic-server/config"
 	"time"
 
-	"log"
-
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
-var (
-	client *mongo.Client
-)
+type Client struct {
+	Client *mongo.Client
+}
 
+//New client created a new MongoDB client wrapper
 
+func NewClient(uri string, dbName string) (*Client, error) {
 
-func ConnectMongo() {
+	if uri == "" {
+		return nil, fmt.Errorf("MongoDB URI is required")
 
-	connectionString := config.AppConfig.Mongo_URI
-
-	// Validate connection string
-	if connectionString == "" {
-		log.Fatal("MongoDB connection string is empty")
 	}
-
-	fmt.Printf("Attempting to connect to MongoDB...\n")
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	// Increase the context timeout for initial connection
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	//client options
-	clientOption := options.Client().ApplyURI(connectionString)
+	clientOptions := options.Client().ApplyURI(uri).SetConnectTimeout(10 * time.Second).SetServerSelectionTimeout(15 * time.Second).SetMaxPoolSize(100).SetRetryWrites(true).SetRetryReads(true)
 
-	//connect to mongoDb
-	var err error
-	client, err = mongo.Connect(ctx, clientOption)
-	if err != nil {
-		log.Fatal("MongoDB connection failed:", err)
-	}
-
-	fmt.Printf("Pinging MongoDB server...\n")
-	err = client.Ping(ctx, nil)
-	if err != nil {
-		log.Fatal("MongoDB ping failed (connection string might be invalid):", err)
-	}
-	hospitalCollection := client.Database(config.AppConfig.DB_NAME).Collection("hospitals")
-	hospitalCollection.Indexes().CreateOne(ctx, mongo.IndexModel{
-		Keys: bson.D{{Key: "location.point", Value: "2dsphere"}},
-	})
-
-	fmt.Println("MongoDB connection successful")
-
-}
-
-// //helper functions
-
-func InsertOne[T any](ctx context.Context, collectionName string, document T) (*T, error) {
-
-	collection := client.Database(config.AppConfig.DB_NAME).Collection(collectionName)
-
-	_, err := collection.InsertOne(ctx, document)
+	//connect to mongo db
+	client, err := mongo.Connect(ctx, clientOptions)
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to insert document: %w", err)
-
+		return nil, fmt.Errorf("failed to create MongoDB client: %w", err)
 	}
 
-	return &document, nil
+	// Create a separate context for ping to avoid timeout issues
+	pingCtx, pingCancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer pingCancel()
 
-}
-
-func FindMany[T any](ctx context.Context, collectionName string, filter bson.M) ([]T, error) {
-
-	collection := client.Database(config.AppConfig.DB_NAME).Collection(collectionName)
-
-	cur, err := collection.Find(ctx, filter)
-	if err != nil {
-		return nil, fmt.Errorf("failed to find documents in %s: %w", collectionName, err)
-	}
-	defer cur.Close(ctx)
-
-	var results []T
-
-	for cur.Next(ctx) {
-		var result T
-		err := cur.Decode(&result)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode document: %w", err)
-		}
-		results = append(results, result)
-	}
-	if err := cur.Err(); err != nil {
-		return nil, fmt.Errorf("cursor error: %w", err)
+	// Ping the database to verify connection
+	if err = client.Ping(pingCtx, readpref.Primary()); err != nil {
+		return nil, fmt.Errorf("failed to ping MongoDB: %w", err)
 	}
 
-	return results, nil
-
-}
-
-func FindOneById[T any](ctx context.Context, collectionName string, id string) (*T, error) {
-	collection := client.Database(config.AppConfig.DB_NAME).Collection(collectionName)
-
-	_id, _ := primitive.ObjectIDFromHex(id)
-
-	filter := bson.M{"_id": _id}
-	var result T
-	err := collection.FindOne(ctx, filter).Decode(&result)
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode document: %w", err)
-	}
-
-	return &result, nil
-
-}
-
-func FindOne[T any](ctx context.Context, collectionName string, filter bson.M) (*T, error) {
-	collection := client.Database(config.AppConfig.DB_NAME).Collection(collectionName)
-
-	res := collection.FindOne(ctx, filter)
-	var result T
-	if err := res.Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode document: %w", err)
-	}
-
-	return &result, nil
-
-}
-
-func DeleteOne(ctx context.Context, collectionName string, filter bson.M) error {
-	collection := client.Database(config.AppConfig.DB_NAME).Collection(collectionName)
-
-	_, err := collection.DeleteOne(ctx, filter)
-	if err != nil {
-		return fmt.Errorf("failed to delete document from %s: %w", collectionName, err)
-	}
-
-	return nil
-}
-
-func UpdateOne[T any](ctx context.Context, collectionName string, filter bson.M, updateQuery bson.M) (*T, error) {
-	collection := client.Database(config.AppConfig.DB_NAME).Collection(collectionName)
-
-	result := collection.FindOneAndUpdate(ctx, filter, updateQuery)
-
-	var updated T
-	if err := result.Decode(&updated); err != nil {
-		return nil, fmt.Errorf("failed to decode updated document: %w", err)
-	}
-
-	return &updated, nil
+	return &Client{Client: client}, nil
 
 }
