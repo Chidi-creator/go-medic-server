@@ -23,3 +23,8 @@ type ApiResponse struct {
 	Data    interface{} `json:"data,omitempty"`
 	Error   string      `json:"error,omitempty"`
 }
+
+type LoginDetails struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}

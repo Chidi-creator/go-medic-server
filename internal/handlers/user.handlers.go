@@ -15,6 +15,7 @@ import (
 
 type UserHandler interface {
 	RegisterUser(w http.ResponseWriter, r *http.Request)
+	LoginUser(w http.ResponseWriter, r *http.Request)
 	GetUserById(w http.ResponseWriter, r *http.Request)
 	UpdateUserById(w http.ResponseWriter, r *http.Request)
 	DeleteUserById(w http.ResponseWriter, r *http.Request)
@@ -50,7 +51,7 @@ func (uh *userHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		managers.JSONresponse(w, http.StatusBadRequest, utils.ApiResponse{
 			Success: false,
-			Error:   "Could not register user",
+			Error:   "Could not register user: " + err.Error(),
 		})
 		return
 	}
@@ -59,6 +60,39 @@ func (uh *userHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		Success: true,
 		Message: "User Created Successfully",
 		Data:    registeredUser,
+	})
+
+}
+
+func (uh *userHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	var details utils.LoginDetails
+
+	err := json.NewDecoder(r.Body).Decode(&details)
+	if err != nil {
+		managers.JSONresponse(w, http.StatusBadRequest, utils.ApiResponse{
+			Success: false,
+			Error:   "Invalid Request Body",
+		})
+		return
+
+	}
+
+	resp, err := uh.uc.LoginUser(ctx, &details)
+
+	if err != nil {
+		managers.JSONresponse(w, http.StatusBadRequest, utils.ApiResponse{
+			Success: false,
+			Error:   "Could not login user: " + err.Error(),
+		})
+		return
+
+	}
+
+	managers.JSONresponse(w, http.StatusOK, utils.ApiResponse{
+		Success: true,
+		Message: "User logged in Successfully",
+		Data:    resp,
 	})
 
 }
@@ -75,7 +109,7 @@ func (uh *userHandler) GetUserById(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		managers.JSONresponse(w, http.StatusNotFound, utils.ApiResponse{
 			Success: false,
-			Error:   "Could not find User",
+			Error:   "Could not find User: " + err.Error(),
 		})
 		return
 	}
@@ -101,7 +135,7 @@ func (uh *userHandler) UpdateUserById(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		managers.JSONresponse(w, http.StatusNotFound, utils.ApiResponse{
 			Success: false,
-			Error:   "Error finding user",
+			Error:   "Error finding user: " + err.Error(),
 		})
 		return
 	}

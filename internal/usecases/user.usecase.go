@@ -6,6 +6,8 @@ import (
 
 	"github/Chidi-creator/go-medic-server/internal/models"
 	"github/Chidi-creator/go-medic-server/internal/repositories"
+	"github/Chidi-creator/go-medic-server/internal/services"
+	"github/Chidi-creator/go-medic-server/internal/utils"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"golang.org/x/crypto/bcrypt"
@@ -17,7 +19,10 @@ type UserUseCase interface {
 	GetUserById(ctx context.Context, id string) (*models.User, error)
 	UpdateUserById(ctx context.Context, id string, updateQuery bson.M) error
 	DeleteUserById(ctx context.Context, id string) (int64, error)
+	LoginUser(ctx context.Context, details *utils.LoginDetails) (map[string]interface{}, error)
 }
+
+
 
 type userUseCase struct {
 	userRepo repositories.UserRepository
@@ -42,6 +47,39 @@ func (uc *userUseCase) RegisterUser(ctx context.Context, user *models.User) (*mo
 		return nil, err
 	}
 	return savedUser, nil
+
+}
+
+func (uc *userUseCase) LoginUser(ctx context.Context, details *utils.LoginDetails) (map[string]interface{}, error) {
+
+	filter := bson.M{"email": details.Email}
+
+	users, err := uc.userRepo.GetUsersByQuery(ctx, filter)
+	if err != nil {
+		return nil, fmt.Errorf("error getting user: %w", err)
+	}
+	if len(users) == 0 || users == nil {
+		return nil, fmt.Errorf("user with email doesn't exist")
+	}
+
+	user := users[0]
+
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(details.Password))
+	if err != nil {
+		return nil, fmt.Errorf("check email and password")
+	}
+
+	//generate token
+	token, err := services.GenerateToken(&user, "access")
+
+	if err != nil {
+		return nil, fmt.Errorf("error generating user token: %w", err)
+	}
+
+	return map[string]interface{}{
+		"user":  user,
+		"token": token,
+	}, nil
 
 }
 
@@ -79,4 +117,3 @@ func (uc *userUseCase) DeleteUserById(ctx context.Context, id string) (int64, er
 	}
 	return count, nil
 }
-

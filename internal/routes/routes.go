@@ -9,7 +9,7 @@ import (
 )
 
 type Router struct {
-	R          *mux.Router
+	R           *mux.Router
 	UserHandler handlers.UserHandler
 }
 
@@ -27,6 +27,11 @@ func (r *Router) SetUpRoutes() {
 	})
 
 	//user routes
-	r.R.HandleFunc("/users", r.UserHandler.RegisterUser).Methods("POST")
+
+	userRouter := r.R.PathPrefix("/users").Subrouter()
+
+	userRouter.HandleFunc("", r.UserHandler.RegisterUser).Methods("POST")
+	userRouter.HandleFunc("/login", r.UserHandler.LoginUser).Methods("POST")
+	userRouter.HandleFunc("/{id}", r.UserHandler.GetUserById).Methods("GET")
 
 }
