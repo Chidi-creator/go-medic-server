@@ -66,7 +66,7 @@ func (uh *userHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 func (uh *userHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	var details utils.LoginDetails
+	var details *utils.LoginDetails
 
 	err := json.NewDecoder(r.Body).Decode(&details)
 	if err != nil {
@@ -78,7 +78,15 @@ func (uh *userHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	resp, err := uh.uc.LoginUser(ctx, &details)
+	if details.Email == "" || details.Password == "" {
+		managers.JSONresponse(w, http.StatusBadRequest, utils.ApiResponse{
+			Success: false,
+			Error:   "Email and password are required",
+		})
+		return
+	}
+
+	resp, err := uh.uc.LoginUser(ctx, details)
 
 	if err != nil {
 		managers.JSONresponse(w, http.StatusBadRequest, utils.ApiResponse{
@@ -155,7 +163,7 @@ func (uh *userHandler) UpdateUserById(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		managers.JSONresponse(w, http.StatusBadRequest, utils.ApiResponse{
 			Success: false,
-			Error:   "nvalid update payload",
+			Error:   "Invalid update payload",
 		})
 		return
 	}

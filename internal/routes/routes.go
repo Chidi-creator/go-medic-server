@@ -9,14 +9,16 @@ import (
 )
 
 type Router struct {
-	R           *mux.Router
-	UserHandler handlers.UserHandler
+	R             *mux.Router
+	UserHandler   handlers.UserHandler
+	DoctorHandler handlers.DoctorHandler
 }
 
-func NewRouter(h handlers.UserHandler) *Router {
+func NewRouter(h handlers.UserHandler, d handlers.DoctorHandler) *Router {
 	return &Router{
-		R:           mux.NewRouter(),
-		UserHandler: h,
+		R:             mux.NewRouter(),
+		UserHandler:   h,
+		DoctorHandler: d,
 	}
 }
 
@@ -33,5 +35,13 @@ func (r *Router) SetUpRoutes() {
 	userRouter.HandleFunc("", r.UserHandler.RegisterUser).Methods("POST")
 	userRouter.HandleFunc("/login", r.UserHandler.LoginUser).Methods("POST")
 	userRouter.HandleFunc("/{id}", r.UserHandler.GetUserById).Methods("GET")
+
+	doctorRouter := r.R.PathPrefix("/doctors").Subrouter()
+
+	doctorRouter.HandleFunc("", r.DoctorHandler.CreateDoctor).Methods("POST")
+	doctorRouter.HandleFunc("/{id}", r.DoctorHandler.FindDoctorById).Methods("GET")
+	doctorRouter.HandleFunc("/{id}", r.DoctorHandler.GetDoctorsByHospitalId).Methods("GET")
+	doctorRouter.HandleFunc("/{id}", r.DoctorHandler.UpdateDoctorById).Methods("PATCH")
+	doctorRouter.HandleFunc("/{id}", r.DoctorHandler.DeleteDoctorByUserId).Methods("DELETE")
 
 }

@@ -52,6 +52,8 @@ func (uc *userUseCase) RegisterUser(ctx context.Context, user *models.User) (*mo
 
 func (uc *userUseCase) LoginUser(ctx context.Context, details *utils.LoginDetails) (map[string]interface{}, error) {
 
+	
+
 	filter := bson.M{"email": details.Email}
 
 	users, err := uc.userRepo.GetUsersByQuery(ctx, filter)

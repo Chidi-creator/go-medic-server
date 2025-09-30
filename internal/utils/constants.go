@@ -16,6 +16,13 @@ const (
 	DONE    Status = "done"
 )
 
+type Roles string
+
+const (
+	USER Roles = "user"
+	DOCTOR Roles = "do"
+)
+
 //structuring the response manager
 type ApiResponse struct {
 	Success bool      `json:"success"`

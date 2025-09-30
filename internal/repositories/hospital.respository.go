@@ -10,6 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type HospitalRepository interface {
@@ -30,6 +31,24 @@ type hospitalRepository struct {
 
 // function that returns new Hospital Repository with necessary arguments
 func NewHospitalRepository(client *mongo.Client, dbName string, collectionName string) HospitalRepository {
+
+	collection := client.Database(dbName).Collection(collectionName)
+
+	//Ensuring location functions & filters work
+
+	indexModel := mongo.IndexModel{
+		Keys:    bson.M{"location.point": "2dsphere"},
+		Options: options.Index().SetName("location_point_idx"),
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	_, err := collection.Indexes().CreateOne(ctx, indexModel)
+
+	if err != nil {
+		fmt.Printf("Failed to create geo index for hospitals: %v\n", err)
+	}
 
 	return &hospitalRepository{
 		client:         client,

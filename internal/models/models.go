@@ -31,14 +31,16 @@ type User struct {
 	Firstname string             `json:"firstname,omitempty" bson:"firstname,omitempty"`
 	LastName  string             `json:"lastname,omitempty" bson:"lastname,omitempty"`
 	Email     string             `json:"email,omitempty" bson:"email,omitempty"`
-	Password  string             `json:"password,omitempty" bson:"passwprd,omitempty"`
+	Password  string             `json:"password,omitempty" bson:"password,omitempty"`
+	Roles     []string           `json:"roles,omitempty" bson:"roles,omitempty"`
 	CreatedAt time.Time          `json:"createdAt,omitempty" bson:"createdAt,omitempty"`
 	UpdatedAt time.Time          `json:"updatedAt,omitempty" bson:"updatedAt,omitempty"`
 }
 
 type Doctor struct {
 	ID         primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
-	Name       string             `json:"name,omitempty" bson:"name,omitempty"`
+	Firstname  string             `json:"firstname,omitempty" bson:"firstname,omitempty"`
+	LastName   string             `json:"lastname,omitempty" bson:"lastname,omitempty"`
 	Specialty  utils.Specialty    `json:"specialty,omitempty" bson:"specialty,omitempty"`
 	HospitalID primitive.ObjectID `json:"hospitalId,omitempty" bson:"hospitalId,omitempty"`
 	CreatedAt  time.Time          `json:"createdAt,omitempty" bson:"createdAt,omitempty"`

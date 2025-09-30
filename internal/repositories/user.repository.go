@@ -37,6 +37,7 @@ func (u *userRepository) RegisterUser(ctx context.Context, user *models.User) (*
 	collection := u.client.Database(u.dbName).Collection(u.collectionName)
 
 	user.CreatedAt = time.Now()
+	user.UpdatedAt = time.Now()
 
 	res, err := collection.InsertOne(ctx, user)
 	if err != nil {
