@@ -142,10 +142,13 @@ func (h *hospitalRepository) UpdateHospitalById(ctx context.Context, id string, 
 	collection := h.client.Database(h.dbName).Collection(h.collectionName)
 	_id, _ := primitive.ObjectIDFromHex(id)
 	filter := bson.M{"_id": _id}
+	updateQuery["updatedAt"] = time.Now()
+
 	update := bson.M{"$set": updateQuery}
+	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
 
 	var updatedResult models.Hospital
-	err := collection.FindOneAndUpdate(ctx, filter, update).Decode(&updatedResult)
+	err := collection.FindOneAndUpdate(ctx, filter, update, opts).Decode(&updatedResult)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to find hospitals: %w", err)

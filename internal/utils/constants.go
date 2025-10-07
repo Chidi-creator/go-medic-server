@@ -19,13 +19,13 @@ const (
 type Roles string
 
 const (
-	USER Roles = "user"
+	USER   Roles = "user"
 	DOCTOR Roles = "do"
 )
 
 //structuring the response manager
 type ApiResponse struct {
-	Success bool      `json:"success"`
+	Success bool        `json:"success"`
 	Message string      `json:"message,omitempty"`
 	Data    interface{} `json:"data,omitempty"`
 	Error   string      `json:"error,omitempty"`

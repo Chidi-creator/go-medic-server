@@ -3,6 +3,7 @@ package mongo
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -17,6 +18,7 @@ type Client struct {
 //New client created a new MongoDB client wrapper
 
 func NewClient(uri string, dbName string) (*Client, error) {
+	log.Println("Connecting to MongoDB...")
 
 	if uri == "" {
 		return nil, fmt.Errorf("MongoDB URI is required")

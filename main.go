@@ -14,9 +14,10 @@ import (
 )
 
 var (
-	userCollection     = "users"
-	hospitalCollection = "hospitals"
-	doctorCollection   = "doctors"
+	userCollection        = "users"
+	hospitalCollection    = "hospitals"
+	doctorCollection      = "doctors"
+	appointmentCollection = "appointments"
 )
 
 func main() {
@@ -30,21 +31,23 @@ func main() {
 	//initialising repositories
 	userRepo := repositories.NewUserRepository(client.Client, config.AppConfig.DB_NAME, userCollection)
 	doctorRepo := repositories.NewDoctorRepository(client.Client, config.AppConfig.DB_NAME, doctorCollection)
+	appointmentRepo := repositories.NewAppointmentRepository(client.Client, config.AppConfig.DB_NAME, appointmentCollection)
 
 	//initialising usecases
 	userUsecase := usecases.NewUserUsecase(userRepo)
 	doctorUsecase := usecases.NewDoctorUseCase(doctorRepo)
+	appointmentUsecase := usecases.NewAppointmentUsecase(appointmentRepo)
 
 	//initializing handlers
 	userHandler := handlers.NewUserHandler(userUsecase)
 	doctorHandler := handlers.NewDoctorHandler(doctorUsecase)
+	appointmentHandler := handlers.NewAppointmentHandler(appointmentUsecase)
 
-	r := routes.NewRouter(userHandler, doctorHandler)
+	r := routes.NewRouter(userHandler, doctorHandler, appointmentHandler)
 	r.SetUpRoutes()
 
 	fmt.Printf("Server started on %v", config.AppConfig.Port)
 
-	//initializing repositories
 
 	http.ListenAndServe(":"+config.AppConfig.Port, r.R)
 

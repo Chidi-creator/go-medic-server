@@ -9,16 +9,21 @@ import (
 )
 
 type Router struct {
-	R             *mux.Router
-	UserHandler   handlers.UserHandler
-	DoctorHandler handlers.DoctorHandler
+	R                  *mux.Router
+	UserHandler        handlers.UserHandler
+	DoctorHandler      handlers.DoctorHandler
+	AppointmentHandler handlers.AppointmentHandler
 }
 
-func NewRouter(h handlers.UserHandler, d handlers.DoctorHandler) *Router {
+func NewRouter(h handlers.UserHandler,
+	d handlers.DoctorHandler,
+	a handlers.AppointmentHandler,
+) *Router {
 	return &Router{
-		R:             mux.NewRouter(),
-		UserHandler:   h,
-		DoctorHandler: d,
+		R:                  mux.NewRouter(),
+		UserHandler:        h,
+		DoctorHandler:      d,
+		AppointmentHandler: a,
 	}
 }
 
@@ -43,5 +48,14 @@ func (r *Router) SetUpRoutes() {
 	doctorRouter.HandleFunc("/{id}", r.DoctorHandler.GetDoctorsByHospitalId).Methods("GET")
 	doctorRouter.HandleFunc("/{id}", r.DoctorHandler.UpdateDoctorById).Methods("PATCH")
 	doctorRouter.HandleFunc("/{id}", r.DoctorHandler.DeleteDoctorByUserId).Methods("DELETE")
+
+	appointmentRouter := r.R.PathPrefix("/appointments").Subrouter()
+
+	appointmentRouter.HandleFunc("", r.AppointmentHandler.CreateAppointment).Methods("POST")
+	appointmentRouter.HandleFunc("/{id}", r.AppointmentHandler.GetSingleAppointmentById).Methods("GET")
+	appointmentRouter.HandleFunc("/user/{id}", r.AppointmentHandler.GetAppointmentsByUserId).Methods("GET")
+	appointmentRouter.HandleFunc("/doctor/{id}", r.AppointmentHandler.GetAppointmentsByDoctorId).Methods("GET")
+	appointmentRouter.HandleFunc("/{id}", r.AppointmentHandler.UpdateAppointmentById).Methods("PATCH")
+	appointmentRouter.HandleFunc("/{id}", r.AppointmentHandler.DeleteAppointmentById).Methods("DELETE")
 
 }
