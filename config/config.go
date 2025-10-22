@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -28,6 +29,7 @@ func getEnv(key, fallback string) string {
 func init() {
 	//load env file
 
+	fmt.Println("Loading .env file...")
 	if err := godotenv.Load(".env"); err != nil {
 		log.Fatal("Error loading .env file")
 	}

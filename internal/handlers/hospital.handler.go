@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"github/Chidi-creator/go-medic-server/internal/managers"
+	"github/Chidi-creator/go-medic-server/internal/middleware"
 	"github/Chidi-creator/go-medic-server/internal/models"
 	"github/Chidi-creator/go-medic-server/internal/usecases"
 	"github/Chidi-creator/go-medic-server/internal/utils"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type HospitalHandler interface {
@@ -22,23 +24,54 @@ type HospitalHandler interface {
 
 type hospitalHandler struct {
 	hu usecases.HospitalUsecase
+	uu usecases.UserUseCase
 }
 
-func NewHospitalHandler(hu usecases.HospitalUsecase) HospitalHandler {
+func NewHospitalHandler(hu usecases.HospitalUsecase, uu usecases.UserUseCase) HospitalHandler {
 	return &hospitalHandler{
 		hu: hu,
+		uu: uu,
 	}
 }
 
 func (h *hospitalHandler) CreateHospital(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	user := middleware.GetUserFromContext(ctx)
+
+	if user == nil {
+		managers.JSONresponse(w, http.StatusUnauthorized, utils.ApiResponse{
+			Success: false,
+			Error:   "User not authenticated",
+		})
+		return
+	}
 
 	var hospital models.Hospital
-	err := json.NewDecoder(r.Body).Decode(&hospital)
+	if err := json.NewDecoder(r.Body).Decode(&hospital); err != nil {
+		managers.JSONresponse(w, http.StatusBadRequest, utils.ApiResponse{
+			Success: false,
+			Error:   "Invalid request body: " + err.Error(),
+		})
+		return
+	}
+
+	// Set UserID from authenticated user (this prevents clients from spoofing the UserID)
+	userId, err := primitive.ObjectIDFromHex(user.UserID)
 	if err != nil {
 		managers.JSONresponse(w, http.StatusBadRequest, utils.ApiResponse{
 			Success: false,
-			Error:   "Invalid request: " + err.Error(),
+			Error:   "Invalid user ID format",
+		})
+		return
+	}
+	hospital.UserID = userId
+
+	// Validate the struct
+	validationErrs := utils.ValidateStruct(hospital)
+	if validationErrs != "" {
+		managers.JSONresponse(w, http.StatusBadRequest, utils.ApiResponse{
+			Success: false,
+			Error:   "Validation failed: " + validationErrs,
 		})
 		return
 	}
@@ -48,6 +81,18 @@ func (h *hospitalHandler) CreateHospital(w http.ResponseWriter, r *http.Request)
 		managers.JSONresponse(w, http.StatusInternalServerError, utils.ApiResponse{
 			Success: false,
 			Error:   "Invalid request: " + err.Error(),
+		})
+		return
+	}
+	updateQuery := bson.M{
+		"$addToSet": bson.M{"roles": utils.HOSPITAL},
+	}
+
+	err = h.uu.UpdateUserById(ctx, user.UserID, updateQuery)
+	if err != nil {
+		managers.JSONresponse(w, http.StatusInternalServerError, utils.ApiResponse{
+			Success: false,
+			Error:   "Could not update user roles: " + err.Error(),
 		})
 		return
 	}
@@ -76,9 +121,9 @@ func (h *hospitalHandler) GetHospitalById(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	managers.JSONresponse(w, http.StatusBadRequest, utils.ApiResponse{
+	managers.JSONresponse(w, http.StatusOK, utils.ApiResponse{
 		Success: true,
-		Message: "Successfully retrieved user",
+		Message: "Successfully retrieved hospital",
 		Data:    hospital,
 	})
 

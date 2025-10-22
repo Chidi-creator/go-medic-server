@@ -19,10 +19,8 @@ type UserUseCase interface {
 	GetUserById(ctx context.Context, id string) (*models.User, error)
 	UpdateUserById(ctx context.Context, id string, updateQuery bson.M) error
 	DeleteUserById(ctx context.Context, id string) (int64, error)
-	LoginUser(ctx context.Context, details *utils.LoginDetails) (map[string]interface{}, error)
+	LoginUser(ctx context.Context, details *utils.LoginRequest) (map[string]interface{}, error)
 }
-
-
 
 type userUseCase struct {
 	userRepo repositories.UserRepository
@@ -35,6 +33,12 @@ func NewUserUsecase(userRepo repositories.UserRepository) UserUseCase {
 }
 
 func (uc *userUseCase) RegisterUser(ctx context.Context, user *models.User) (*models.User, error) {
+
+	// assign a default role of customer if no role is provided
+	if len(user.Roles) == 0 {
+		user.Roles = append(user.Roles, utils.CUSTOMER)
+	}
+
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, fmt.Errorf("could not hash password: %w", err)
@@ -50,9 +54,7 @@ func (uc *userUseCase) RegisterUser(ctx context.Context, user *models.User) (*mo
 
 }
 
-func (uc *userUseCase) LoginUser(ctx context.Context, details *utils.LoginDetails) (map[string]interface{}, error) {
-
-	
+func (uc *userUseCase) LoginUser(ctx context.Context, details *utils.LoginRequest) (map[string]interface{}, error) {
 
 	filter := bson.M{"email": details.Email}
 
@@ -72,7 +74,7 @@ func (uc *userUseCase) LoginUser(ctx context.Context, details *utils.LoginDetail
 	}
 
 	//generate token
-	token, err := services.GenerateToken(&user, "access")
+	token, err := services.GenerateToken(user.ID, "access")
 
 	if err != nil {
 		return nil, fmt.Errorf("error generating user token: %w", err)

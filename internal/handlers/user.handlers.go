@@ -15,7 +15,6 @@ import (
 
 type UserHandler interface {
 	RegisterUser(w http.ResponseWriter, r *http.Request)
-	LoginUser(w http.ResponseWriter, r *http.Request)
 	GetUserById(w http.ResponseWriter, r *http.Request)
 	UpdateUserById(w http.ResponseWriter, r *http.Request)
 	DeleteUserById(w http.ResponseWriter, r *http.Request)
@@ -46,6 +45,16 @@ func (uh *userHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 	}
 
+	// validate request
+	validationErrs := utils.ValidateStruct(user)
+	if validationErrs != "nil" {
+		managers.JSONresponse(w, http.StatusBadRequest, utils.ApiResponse{
+			Success: false,
+			Error:   validationErrs,
+		})
+		return
+	}
+
 	registeredUser, err := uh.uc.RegisterUser(ctx, &user)
 
 	if err != nil {
@@ -60,47 +69,6 @@ func (uh *userHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		Success: true,
 		Message: "User Created Successfully",
 		Data:    registeredUser,
-	})
-
-}
-
-func (uh *userHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	var details *utils.LoginDetails
-
-	err := json.NewDecoder(r.Body).Decode(&details)
-	if err != nil {
-		managers.JSONresponse(w, http.StatusBadRequest, utils.ApiResponse{
-			Success: false,
-			Error:   "Invalid Request Body",
-		})
-		return
-
-	}
-
-	if details.Email == "" || details.Password == "" {
-		managers.JSONresponse(w, http.StatusBadRequest, utils.ApiResponse{
-			Success: false,
-			Error:   "Email and password are required",
-		})
-		return
-	}
-
-	resp, err := uh.uc.LoginUser(ctx, details)
-
-	if err != nil {
-		managers.JSONresponse(w, http.StatusBadRequest, utils.ApiResponse{
-			Success: false,
-			Error:   "Could not login user: " + err.Error(),
-		})
-		return
-
-	}
-
-	managers.JSONresponse(w, http.StatusOK, utils.ApiResponse{
-		Success: true,
-		Message: "User logged in Successfully",
-		Data:    resp,
 	})
 
 }

@@ -46,6 +46,8 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			})
 		}
 
+		
+
 		//attach claims to context
 		ctx := context.WithValue(r.Context(), UserContextKey, claims)
 		next.ServeHTTP(w, r.WithContext(ctx))

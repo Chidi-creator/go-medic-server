@@ -2,6 +2,7 @@ package routes
 
 import (
 	"github/Chidi-creator/go-medic-server/internal/handlers"
+	"github/Chidi-creator/go-medic-server/internal/middleware"
 	"log"
 	"net/http"
 
@@ -12,18 +13,24 @@ type Router struct {
 	R                  *mux.Router
 	UserHandler        handlers.UserHandler
 	DoctorHandler      handlers.DoctorHandler
+	HospitalHandler    handlers.HospitalHandler
 	AppointmentHandler handlers.AppointmentHandler
+	AuthHandler        handlers.AuthHandler
 }
 
 func NewRouter(h handlers.UserHandler,
 	d handlers.DoctorHandler,
+	hh handlers.HospitalHandler,
 	a handlers.AppointmentHandler,
+	ah *handlers.AuthHandler,
 ) *Router {
 	return &Router{
 		R:                  mux.NewRouter(),
 		UserHandler:        h,
 		DoctorHandler:      d,
+		HospitalHandler:    hh,
 		AppointmentHandler: a,
+		AuthHandler:        *ah,
 	}
 }
 
@@ -38,8 +45,17 @@ func (r *Router) SetUpRoutes() {
 	userRouter := r.R.PathPrefix("/users").Subrouter()
 
 	userRouter.HandleFunc("", r.UserHandler.RegisterUser).Methods("POST")
-	userRouter.HandleFunc("/login", r.UserHandler.LoginUser).Methods("POST")
 	userRouter.HandleFunc("/{id}", r.UserHandler.GetUserById).Methods("GET")
+	userRouter.HandleFunc("/{id}", r.UserHandler.UpdateUserById).Methods("PATCH")
+	userRouter.HandleFunc("/{id}", r.UserHandler.DeleteUserById).Methods("DELETE")
+
+	
+	//auth routes
+	authRouter := r.R.PathPrefix("/auth").Subrouter()
+
+	authRouter.HandleFunc("/login", r.AuthHandler.LoginUser).Methods("POST")
+	//protect refresh route
+	authRouter.Handle("/refresh", middleware.AuthMiddleware(http.HandlerFunc(r.AuthHandler.GenerateRefreshToken))).Methods("GET")
 
 	doctorRouter := r.R.PathPrefix("/doctors").Subrouter()
 
@@ -50,6 +66,7 @@ func (r *Router) SetUpRoutes() {
 	doctorRouter.HandleFunc("/{id}", r.DoctorHandler.DeleteDoctorByUserId).Methods("DELETE")
 
 	appointmentRouter := r.R.PathPrefix("/appointments").Subrouter()
+	appointmentRouter.Use(middleware.AuthMiddleware) // Protect all appointment routes
 
 	appointmentRouter.HandleFunc("", r.AppointmentHandler.CreateAppointment).Methods("POST")
 	appointmentRouter.HandleFunc("/{id}", r.AppointmentHandler.GetSingleAppointmentById).Methods("GET")
@@ -57,5 +74,14 @@ func (r *Router) SetUpRoutes() {
 	appointmentRouter.HandleFunc("/doctor/{id}", r.AppointmentHandler.GetAppointmentsByDoctorId).Methods("GET")
 	appointmentRouter.HandleFunc("/{id}", r.AppointmentHandler.UpdateAppointmentById).Methods("PATCH")
 	appointmentRouter.HandleFunc("/{id}", r.AppointmentHandler.DeleteAppointmentById).Methods("DELETE")
+
+	hospitalRouter := r.R.PathPrefix("/hospitals").Subrouter()
+	hospitalRouter.Use(middleware.AuthMiddleware) // Protect all hospital routes
+
+	hospitalRouter.HandleFunc("", r.HospitalHandler.CreateHospital).Methods("POST")
+	hospitalRouter.HandleFunc("/{id}", r.HospitalHandler.GetHospitalById).Methods("GET")
+	hospitalRouter.HandleFunc("", r.HospitalHandler.GetAllHospitals).Methods("GET")
+	hospitalRouter.HandleFunc("/{id}", r.HospitalHandler.UpdateHospitalById).Methods("PATCH")
+	hospitalRouter.HandleFunc("/{id}", r.HospitalHandler.DeleteHospital).Methods("DELETE")
 
 }

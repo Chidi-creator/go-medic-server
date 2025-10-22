@@ -103,12 +103,9 @@ func (u *userRepository) UpdateUserById(ctx context.Context, id string, updateQu
 		return fmt.Errorf("invalid user ID: %w", err)
 	}
 
-	updateQuery["updatedAt"] = time.Now()
-
 	filter := bson.M{"_id": _id}
-	update := bson.M{"$set": updateQuery}
 
-	res, err := collection.UpdateOne(ctx, filter, update)
+	res, err := collection.UpdateOne(ctx, filter, updateQuery)
 	if err != nil {
 		return fmt.Errorf("could not update user: %w", err)
 	}

@@ -3,11 +3,11 @@ package services
 import (
 	"fmt"
 	"github/Chidi-creator/go-medic-server/config"
-	"github/Chidi-creator/go-medic-server/internal/models"
 
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 var JWT_SECRET = []byte(config.AppConfig.JWT_SECRET)
@@ -21,11 +21,10 @@ var (
 // jwt claims
 type Claims struct {
 	UserID string `json:"userid"`
-	Email  string `json:"email"`
 	jwt.RegisteredClaims
 }
 
-func GenerateToken(user *models.User, tokenType string) (string, error) {
+func GenerateToken(userId primitive.ObjectID, tokenType string) (string, error) {
 	var expirationTime time.Duration
 	var subject string
 
@@ -42,8 +41,7 @@ func GenerateToken(user *models.User, tokenType string) (string, error) {
 	}
 
 	claims := &Claims{
-		UserID: user.ID.Hex(),
-		Email:  user.Email,
+		UserID: userId.Hex(),
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(expirationTime)),
 			Issuer:    "medic-server",
